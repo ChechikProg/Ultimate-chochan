@@ -437,16 +437,16 @@ function updateBody(dt) {
   b.vy += PHYS.grav * dt;
   if (!b.gr && b.wall && mx === b.wall && b.vy > PHYS.slide) { b.vy = PHYS.slide; if (Math.random() < 0.3) FX.add({ x: b.x + (b.wall > 0 ? b.w : 0), y: b.y + 26, vy: -30, size: 3, life: 0.3 }); }
   b.vy = Math.min(b.vy, PHYS.maxFall);
-  // viento
+  // viento y arrastre de superficie: se suman al movimiento en X para que choquen con las paredes
+  let carry = 0;
   for (const w of G.winds) if (ov(b, w.r)) {
     if (w.dir === 0) { b.vy = Math.max(b.vy - 4300 * dt, -460); }
     else if (w.dir === 2) b.vy += 2000 * dt;
-    else b.x += (w.dir === 1 ? 1 : -1) * 200 * dt;
+    else carry += (w.dir === 1 ? 1 : -1) * 200 * dt;
   }
-  // arrastre de superficie
   if (b.gr && b.gref) {
-    if (b.gref.kind === 'conv') b.x += b.gref.speed * dt;
-    if (b.gref.mover) { b.x += b.gref.dx; b.y += b.gref.dy; }
+    if (b.gref.kind === 'conv') carry += b.gref.speed * dt;
+    if (b.gref.mover) { carry += b.gref.dx; b.y += b.gref.dy; }
   }
   // empujes de plataformas móviles
   for (const m of G.movers) if (ov(b, m) && m !== b.gref) {
@@ -456,12 +456,17 @@ function updateBody(dt) {
   }
   // mover X
   const px = b.x;
-  b.x += b.vx * dt;
+  b.x += b.vx * dt + carry;
   for (const s of solidsNear(b)) {
     if (s.oneWay || !ov(b, s)) continue;
     const sdx = s.dx || 0;
     if (px + b.w <= s.x - sdx + 2) { b.x = s.x - b.w; if (b.vx > 0) b.vx = 0; }
     else if (px >= s.x + s.w - sdx - 2) { b.x = s.x + s.w; if (b.vx < 0) b.vx = 0; }
+    else if (Math.min(b.y + b.h, s.y + s.h) - Math.max(b.y, s.y) > 4) {
+      // ya estaba adentro (p. ej. empujado por una plataforma móvil): sacarlo por el lado más cercano
+      b.x = b.x + b.w / 2 < s.x + s.w / 2 ? s.x - b.w : s.x + s.w;
+      b.vx = 0;
+    }
   }
   if (b.x < 0) { b.x = 0; b.vx = 0; }
   if (b.x + b.w > W) { b.x = W - b.w; b.vx = 0; }
