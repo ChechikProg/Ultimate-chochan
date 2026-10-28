@@ -1,0 +1,9 @@
+{
+  "name": "ultimate-chochan",
+  "version": "0.1.0",
+  "description": "Ultimate Chochan - party platformer online",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}
