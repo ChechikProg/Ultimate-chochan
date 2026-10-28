@@ -41,3 +41,4 @@ El anfitrión de la sala decide las fases y el puntaje; cada jugador simula su p
 | Llegar con el alfajor | +4 |
 
 Si llegan todos: nadie suma. Gana el primero en llegar a 50.
+"# Ultimate-chochan" 
