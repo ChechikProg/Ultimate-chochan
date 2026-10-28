@@ -7,28 +7,48 @@ Cada ronda: **elegís un ítem** de la caja → **lo colocás** en el nivel → 
 
 ```bash
 npm install
-npm start
+npm run dev
 ```
 
-Abrí http://localhost:3000, creá una sala y pasales el link (o el código de 4 letras) a tus amigos.
+Abrí http://localhost:8787, creá una sala y abrí otra pestaña para unirte con el código.
+(`npm start` levanta una versión alternativa con Node en http://localhost:3000.)
 
-## Publicar gratis en Render
+## Publicar gratis en Cloudflare Workers
 
-1. Subí esta carpeta a un repositorio de GitHub (sin `node_modules`, ya está en `.gitignore`).
-2. En https://render.com → **New → Blueprint** → elegí el repo. Render lee `render.yaml` y crea el servicio web gratis.
-   (Alternativa: **New → Web Service**, Build `npm install`, Start `node server.js`, plan Free.)
-3. Te da una URL tipo `https://ultimate-chochan.onrender.com`. Compartila y listo.
+Usa el plan gratis de Cloudflare (sin tarjeta). Cada sala corre en un *Durable Object* que se crea
+cerca de quien la arma (Sudamérica si estás en Argentina), así que el lag es bajo y nunca se "duerme".
 
-> El plan gratis de Render "duerme" el servidor después de 15 min sin uso: la primera visita puede tardar ~1 minuto en despertar.
+1. Creá una cuenta gratis en https://dash.cloudflare.com/sign-up
+2. En esta carpeta:
+
+   ```bash
+   npx wrangler login
+   ```
+
+   Se abre el navegador para autorizar. Después:
+
+   ```bash
+   npm run deploy
+   ```
+
+3. Te da una URL tipo `https://ultimate-chochan.TU-SUBDOMINIO.workers.dev`. Compartila y listo.
+
+Cada vez que cambies algo, volvé a correr `npm run deploy`.
+
+> Límite gratis: 100.000 pedidos por día (cada 20 mensajes del juego cuentan como 1), unas 6–7 horas
+> diarias de partida con 4 jugadores. Si se pasa, las salas dan error hasta las 21 h (hora de Argentina); nunca cobra.
 
 ## Estructura
 
-- `server.js` — sirve los archivos y hace de relay WebSocket por sala (código de 4 letras).
-- `js/core.js` — constantes, input (teclado + joystick), sonidos sintetizados, partículas.
-- `js/content.js` — personajes, temas, niveles (mapas ASCII) e ítems (dibujo).
-- `js/game.js` — red, lógica del anfitrión (fases y puntaje), física, render y lobby.
+- `worker/index.js` — servidor en Cloudflare: sirve el juego y cada sala es un Durable Object que hace de relay WebSocket.
+- `wrangler.jsonc` — configuración de Cloudflare.
+- `server.js` — servidor alternativo con Node (para probar sin Cloudflare).
+- `public/js/core.js` — constantes, input (teclado + joystick), sonidos sintetizados, partículas.
+- `public/js/content.js` — personajes, temas, niveles (mapas ASCII) e ítems (dibujo).
+- `public/js/game.js` — red, lógica del anfitrión (fases y puntaje), física, render y lobby.
 
 El anfitrión de la sala decide las fases y el puntaje; cada jugador simula su propio personaje y manda su posición.
+Si el anfitrión se va, otro jugador toma su lugar y la partida sigue.
 
 ## Reglas de puntaje
 

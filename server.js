@@ -1,14 +1,14 @@
 'use strict';
-// Servidor de Ultimate Chochan: sirve los archivos estáticos y hace de relay
-// WebSocket entre los jugadores de cada sala. La lógica de la ronda la lleva
-// el anfitrión (host) de la sala desde su navegador.
+// Servidor local alternativo (Node) de Ultimate Chochan, sin Cloudflare:
+// sirve public/ y hace de relay WebSocket entre los jugadores de cada sala.
+// El servidor que se publica es worker/index.js (Cloudflare Workers).
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
-const ROOT = __dirname;
+const ROOT = path.join(__dirname, 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json' };
 const PUBLIC = new Set(['index.html', 'style.css']);
 

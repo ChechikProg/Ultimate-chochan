@@ -19,14 +19,24 @@ const G = {
 // ---------- Red ----------
 const Net = {
   ws: null,
-  connect(cb) {
-    if (this.ws && this.ws.readyState === 1) return cb();
-    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+  // Cada sala usa su propia conexión: query = 'create=1' o 'join=CODE'
+  connect(query, cb) {
+    this.close();
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws?' + query);
     this.ws = ws;
     ws.onopen = cb;
-    ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch { return; } onMsg(m); };
-    ws.onclose = () => { if (G.code) { lobbyError('Se perdió la conexión con el servidor'); resetToMenu(); } };
-    ws.onerror = () => lobbyError('No se pudo conectar al servidor');
+    ws.onmessage = (e) => { if (ws !== this.ws) return; let m; try { m = JSON.parse(e.data); } catch { return; } onMsg(m); };
+    ws.onclose = () => {
+      if (ws !== this.ws) return;
+      this.ws = null;
+      if (G.code) { lobbyError('Se perdió la conexión con el servidor'); resetToMenu(); }
+    };
+    ws.onerror = () => { if (ws === this.ws && !G.code) lobbyError('No se pudo conectar al servidor'); };
+  },
+  close() {
+    const ws = this.ws;
+    this.ws = null;
+    if (ws) try { ws.close(); } catch (e) { /* ya cerrado */ }
   },
   send(m) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(m)); },
 };
@@ -871,14 +881,14 @@ function setupLobby() {
   const q = new URLSearchParams(location.search).get('sala');
   if (q) $('code').value = q.toUpperCase();
   buildCharPicker($('chars'));
-  $('create').onclick = () => { Sfx.init(); lobbyError('Conectando…'); Net.connect(() => Net.send({ t: 'create', name: myName(), char: myCharSel })); };
+  $('create').onclick = () => { Sfx.init(); lobbyError('Conectando…'); Net.connect('create=1', () => Net.send({ t: 'create', name: myName(), char: myCharSel })); };
   $('join').onclick = () => {
     Sfx.init();
     const c = $('code').value.trim().toUpperCase();
-    if (c.length !== 4) return lobbyError('El código tiene 4 letras');
-    lobbyError('Conectando…'); Net.connect(() => Net.send({ t: 'join', code: c, name: myName(), char: myCharSel }));
+    if (!/^[A-Z]{4}$/.test(c)) return lobbyError('El código tiene 4 letras');
+    lobbyError('Conectando…'); Net.connect('join=' + c, () => Net.send({ t: 'join', code: c, name: myName(), char: myCharSel }));
   };
-  $('leave').onclick = () => { Net.send({ t: 'leave' }); history.replaceState(null, '', location.pathname); resetToMenu(); };
+  $('leave').onclick = () => { Net.send({ t: 'leave' }); Net.close(); history.replaceState(null, '', location.pathname); resetToMenu(); };
   $('copy').onclick = () => { const url = location.origin + location.pathname + '?sala=' + G.code; navigator.clipboard && navigator.clipboard.writeText(url); $('copy').textContent = '¡Copiado!'; setTimeout(() => ($('copy').textContent = 'Copiar link'), 1500); };
   const lv = $('levels');
   LEVELS.forEach((l, i) => { const o = document.createElement('option'); o.value = i; o.textContent = l.name; lv.appendChild(o); });
